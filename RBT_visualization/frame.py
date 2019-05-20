@@ -1,4 +1,5 @@
 import tkinter as tk
+import time
 
 
 class MainFrame(tk.Frame):
@@ -8,6 +9,8 @@ class MainFrame(tk.Frame):
         self.grid(row=0, column=0, sticky=(tk.S, tk.E, tk.N, tk.W))
         self._add_menu()
         self._add_canvas()
+        self._root = root
+        self.d = 25
 
     def _add_menu(self):
         menu_bar = tk.Menu(self.master)
@@ -53,27 +56,84 @@ class MainFrame(tk.Frame):
         self._canvas.create_line(x0, y0, x1, y1, width=12, fill='red')
         self._canvas.create_line(x0, y1, x1, y0, width=12, fill='red')
 
-    def draw_node(self, node, parent = None):
-        node.x = 300
-        node.y = 100
-        d = 50
-        self._canvas.create_oval(node.x, node.y, node.x + d, node.y + d,
-                           outline="black")
-        self._canvas.create_text(node.x + d / 2, node.y + d / 2, text=str(node.value), fill='black',
-                           font=('Helvetica', '16'))
 
-    def _classify_line(self, line):
-        start, end = line[0], line[2]
-        if start[0] == end[0]:
-            descr = (0, start[0])
-        elif start[1] == end[1]:
-            descr = (1, start[1])
+    def draw_connection(self, node, parent):
+        # distance between nodes
+        dist = ((node.x - parent.x)**2 + (node.y - parent.y)**2) ** 0.5
+        # paranetres of angle
+        sin_alpha = (node.y - parent.y) / dist
+        cos_alpha = (node.x - parent.x) / dist
+
+        x0, y0 = parent.x + self.d * cos_alpha, parent.y + self.d * sin_alpha
+        x1, y1 = node.x - self.d * cos_alpha, node.y - self.d * sin_alpha
+
+        return self._canvas.create_line(x0, y0, x1, y1, width=2, fill='black')# , arrow=tk.LAST)
+
+    def draw_node(self, node, parent=None, side=None):
+        width, height = 600, 400
+        max_depth = 5
+        if parent is None:
+            node.x, node.y = 300, 50
         else:
-            if start[0] != start[1]:
-                descr = 2
+            if side == 'left':
+                node.x = parent.x - min(parent.x, width - parent.x) / 2
+            elif side == 'right':
+                node.x = parent.x + min(parent.x, width - parent.x) / 2
             else:
-                descr = 3
-        return descr
+                raise Exception('unknown parameter side = {}'.format(side))
+            node.y = parent.y + (height - 100) / max_depth
+
+        node.fig = self._canvas.create_oval(node.x - self.d, node.y - self.d, node.x + self.d, node.y + self.d,
+                           width=2, outline='black', fill='red')
+        node.text = self._canvas.create_text(node.x, node.y, text=str(node.value), fill='white',
+                           font=('Helvetica', '20'))
+        if parent is not None:
+            node.connect = self.draw_connection(node, parent)
+
+    def recolor_node(self, node, color='black'):
+        self._canvas.create_oval(node.x - self.d, node.y - self.d, node.x + self.d, node.y + self.d,
+                                 width=2, outline='black', fill=color)
+        self._canvas.create_text(node.x, node.y, text=str(node.value), fill='white',
+                                 font=('Helvetica', '20'))
+
+    def _move_connection(self, node1, node2):
+
+        # distance between nodes
+        dist = ((node1.x - node2.x) ** 2 + (node1.y - node2.y) ** 2) ** 0.5
+
+        if dist > 2 * self.d and node2.y > node1.y:
+            self._canvas.delete(node2.connect)
+            node2.connect = self.draw_connection(node=node2, parent=node1)
+        elif dist > 2 * self.d and node2.y < node1.y:
+            self._canvas.delete(node2.connect)
+            node2.connect = self.draw_connection(node=node1, parent=node2)
+        else:
+            pass
+
+
+    def flip_nodes(self, node1, node2):
+
+        coords1 = self._canvas.coords(node1.fig)
+        coords2 = self._canvas.coords(node2.fig)
+
+        xspeed1, yspeed1 = (node2.x - node1.x) / 100, (node2.y - node1.y) / 100
+        xspeed2, yspeed2 = -xspeed1, -yspeed1
+
+        while self._canvas.coords(node1.fig)[0] != coords2[0] and self._canvas.coords(node1.fig)[1] != coords2[1]:
+            # move nodes
+            self._canvas.move(node1.fig, xspeed1, yspeed1)
+            self._canvas.move(node2.fig, xspeed2, yspeed2)
+            # move nodes' values
+            self._canvas.move(node1.text, xspeed1, yspeed1)
+            self._canvas.move(node2.text, xspeed2, yspeed2)
+
+            node1.x, node1.y = node1.x + xspeed1, node1.y + yspeed1
+            node2.x, node2.y = node2.x + xspeed2, node2.y + yspeed2
+            # redraw connection
+            self._move_connection(node1, node2)
+
+            time.sleep(0.003)
+            self._root.update()
 
     def _draw_victory_line(self, descr):
         if isinstance(descr, tuple):

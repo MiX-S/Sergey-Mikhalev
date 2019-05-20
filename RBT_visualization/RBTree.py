@@ -1,15 +1,23 @@
 from BSTree import BSTNode, BST
+from frame import MainFrame
+import tkinter as tk
 
 
 class RBTNode(BSTNode):
-    __slots__ = tuple(list(BSTNode.__slots__) + ['color'])
+    __slots__ = tuple(list(BSTNode.__slots__) + ['color', 'x', 'y', 'fig', 'text', 'connect'])
 
-    def __init__(self, key, value, left=None, right=None, parent=None, color='red'):
+    def __init__(self, key, value, left=None, right=None, parent=None, color='red',
+                 x=None, y=None, fig=None, text=None, connect=None):
         super().__init__(key, value, left=left, right=right, parent=parent)
         self.color = color
 
 
 class RBT(BST):
+
+    def __init__(self):
+        super().__init__()
+        self.Root = tk.Tk()
+        self.frame = MainFrame(self.Root)
 
     ############################
     # Insertion methods
@@ -59,6 +67,7 @@ class RBT(BST):
         if node.parent is None:
             # case 1
             node.color = 'black'
+            self.frame.recolor_node(node, 'black')
         elif node.parent.color == 'black':
             # case 2
             # no need to do anything
@@ -84,12 +93,14 @@ class RBT(BST):
         elif key < root.key:
             if root.left is None:
                 root.left = RBTNode(key, value, parent=root)
+                self.frame.draw_node(root.left, root, 'left')
                 self._retrace_insert(root.left)
             else:
                 self._insert(key, value, root.left)
         else:
             if root.right is None:
                 root.right = RBTNode(key, value, parent=root)
+                self.frame.draw_node(root.right, root, 'right')
                 self._retrace_insert(root.right)
             else:
                 self._insert(key, value, root.right)
@@ -97,6 +108,8 @@ class RBT(BST):
     def insert(self, key, value):
         if self.root is None:
             self.root = RBTNode(key, value)
+            # Draw root node
+            self.frame.draw_node(self.root)
             self._retrace_insert(self.root)
         else:
             self._insert(key, value, self.root)
