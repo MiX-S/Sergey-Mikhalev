@@ -1,10 +1,14 @@
+from frame import MainFrame
+import tkinter as tk
+
+
 class BSTNode:
     # Description of __slots__ attribute can be found at
     # https://pythonz.net/references/named/object.__slots__/
     # Here __slots__ is used in __str__() method.
     __slots__ = ('key', 'value', 'left', 'right', 'parent')
 
-    def __init__(self, key, value, left=None, right=None, parent=None, x=None, y=None):
+    def __init__(self, key, value, left=None, right=None, parent=None):
         self.key = key
         self.value = value
         self.left = left

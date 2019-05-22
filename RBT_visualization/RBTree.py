@@ -4,12 +4,15 @@ import tkinter as tk
 
 
 class RBTNode(BSTNode):
-    __slots__ = tuple(list(BSTNode.__slots__) + ['color', 'x', 'y', 'fig', 'text', 'connect'])
+    __slots__ = tuple(list(BSTNode.__slots__) + ['color', 'x', 'y', 'fig', 'text', 'connect', 'new_x', 'new_y'])
 
     def __init__(self, key, value, left=None, right=None, parent=None, color='red',
-                 x=None, y=None, fig=None, text=None, connect=None):
+                 x=None, y=None, fig=None, text=None, connect=None, new_x=None, new_y=None):
         super().__init__(key, value, left=left, right=right, parent=parent)
         self.color = color
+        self.connect = None
+        self.new_x = None
+        self.new_y = None
 
 
 class RBT(BST):
@@ -33,6 +36,10 @@ class RBT(BST):
         grandparent.color = 'red'
         parent.color = 'black'
         uncle.color = 'black'
+        self.frame.recolor_node(uncle, 'black')
+        self.frame.recolor_node(parent, 'black')
+        self.frame.recolor_node(grandparent, 'red')
+
         self._retrace_insert(grandparent)
 
     def _case_4_ins(self, node):
@@ -90,6 +97,9 @@ class RBT(BST):
     def _insert(self, key, value, root):
         if key == root.key:
             root.value = value
+            # Draw root node
+            self.frame.draw_node(self.root)
+            self._retrace_insert(self.root)
         elif key < root.key:
             if root.left is None:
                 root.left = RBTNode(key, value, parent=root)
@@ -266,3 +276,49 @@ class RBT(BST):
         if self.root is not None and self.root.color == 'red':
             raise BrokenTreeError("color of the tree root is red", self.root, 1)
         _ = self._verify(self.root)
+
+
+    def _rotate_left1(self, node):
+        """Left rotation of subtree with root at `node`.
+            node                 B
+           /    \               / \
+          A      B   ===>   node   D
+                / \        /    \
+               C   D      A      C
+        Args:
+            node: an instance of `BSTNode` class or `BSTNode` subclass
+
+        Returns:
+            None
+        """
+
+        r = node.right
+        if r is None:
+            raise ValueError("no right subtree")
+        rl = r.left
+
+        p = node.parent
+
+        if p is None:
+            self.root = r
+        else:
+            if node.is_left_child():
+                p.left = r
+            else:
+                p.right = r
+
+        r.parent = p
+        r.left = node
+        # redraw connections
+        self.frame.draw_connection(r, p)
+        self.frame.draw_connection(node, r)
+
+        node.parent = r
+        node.right = rl
+
+        if rl is not None:
+            rl.parent = node
+            self.frame.draw_connection(rl, node)
+
+
+        # Передвинуть все узлы на свои места!

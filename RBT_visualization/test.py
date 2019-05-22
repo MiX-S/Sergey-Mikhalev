@@ -23,6 +23,6 @@ frame.draw_node(node3, node2, 'right')
 frame.draw_node(node4, node2, 'left')
 
 
-frame.flip_nodes(node2, node3)
+#frame.flip_nodes(node2, node3)
 
 root.mainloop()
