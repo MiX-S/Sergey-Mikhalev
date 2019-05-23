@@ -231,6 +231,7 @@ class BST:
         parent = node.parent
         if parent is None:
             self.root = successor
+            self.frame._canvas.delete(node.fig)
         else:
             if node.is_left_child():
                 parent.left = successor

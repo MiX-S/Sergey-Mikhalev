@@ -1,6 +1,7 @@
-from BSTree import BSTNode, BST
+from BSTree import BSTNode, BST, BrokenTreeError
 from frame import MainFrame
 import tkinter as tk
+import time
 
 
 class RBTNode(BSTNode):
@@ -17,10 +18,12 @@ class RBTNode(BSTNode):
 
 class RBT(BST):
 
-    def __init__(self):
+    def __init__(self, frame):
         super().__init__()
-        self.Root = tk.Tk()
-        self.frame = MainFrame(self.Root)
+        self.frame =  frame
+
+    def reset(self):
+        self.root = None
 
     ############################
     # Insertion methods
@@ -52,19 +55,38 @@ class RBT(BST):
     def _subcase_4_1_ins(self, node):
         parent = node.parent
         if node.is_left_child():
+            self.frame.rotate_right_redraw_connect(parent)
             self._rotate_right(parent)
+            self.frame.rotate(self.root)
         else:
+            self.frame.rotate_left_redraw_connect(parent)
             self._rotate_left(parent)
+            self.frame.rotate(self.root)
         self._subcase_4_2_ins(parent)
 
     def _subcase_4_2_ins(self, node):
         parent, uncle, grandparent = self._get_relatives_ins(node)
         if node.is_left_child():
+            self.frame.rotate_right_redraw_connect(grandparent)
             self._rotate_right(grandparent)
+            self.frame.rotate(self.root)
         else:
+            try:
+                self.frame.rotate_left_redraw_connect(grandparent)
+            except AttributeError:
+                print('node: ', node.value)
+                print('parent: ', node.parent.value)
+                print('right: ', node.right.value)
+                self.prefix_traverse()
+                time.sleep(0.2)
+                raise AttributeError
+
             self._rotate_left(grandparent)
+            self.frame.rotate(self.root)
         parent.color = 'black'
         grandparent.color = 'red'
+        self.frame.recolor_node(parent, 'black')
+        self.frame.recolor_node(grandparent, 'red')
 
     def _retrace_insert(self, node):
         if node.parent is not None:
@@ -143,53 +165,134 @@ class RBT(BST):
         return s.color == 'red'
 
     def _4th_cond_rem(self, p, node_is_left_child):
-        pass  # TODO
+        s, sl, sr = self._get_relatives_rem(p, node_is_left_child)
+        return (p.color == 'red' and
+                s.color == 'black' and
+                (sl is None or sl.color == 'black') and
+                (sr is None or sr.color == 'black'))
 
     def _5th_cond_rem(self, p, node_is_left_child):
-        pass  # TODO
+        s, sl, sr = self._get_relatives_rem(p, node_is_left_child)
+        if node_is_left_child:
+            return (sl is not None and
+                    (sl.color == 'red') and
+                    (sr is None or sr.color == 'black'))
+        else:
+            return (sr is not None and
+                    (sr.color == 'red') and
+                    (sl is None or sl.color == 'black'))
 
     def _6th_cond_rem(self, p, node_is_left_child):
-        pass  # TODO
+        s, sl, sr = self._get_relatives_rem(p, node_is_left_child)
+        if node_is_left_child:
+            return (sr is not None and
+                    (sr.color == 'red') and
+                    (sl is None or sl.color == 'black'))
+        else:
+            return (sl is not None and
+                    (sl.color == 'red') and
+                    (sr is None or sr.color == 'black'))
 
     def _case_2_rem(self, parent, node_is_left_child):
         sibling, _, _ = self._get_relatives_rem(parent, node_is_left_child)
         sibling.color = 'red'
+        self.frame.recolor_node(sibling, 'red')
         self._retrace_remove(parent.parent, parent.is_left_child())
 
     def _case_3_rem(self, parent, node_is_left_child):
         if node_is_left_child:
             sibling = parent.right
+            self.frame.rotate_left_redraw_connect(parent)
             self._rotate_left(parent)
+            self.frame.rotate(self.root)
         else:
             sibling = parent.left
+            self.frame.rotate_right_redraw_connect(parent)
             self._rotate_right(parent)
+            self.frame.rotate(self.root)
         parent.color = 'red'
         sibling.color = 'black'
+        self.frame.recolor_node(parent, 'red')
+        self.frame.recolor_node(sibling, 'black')
         self._cases_4_5_6_rem(parent, node_is_left_child)
 
     def _case_4_rem(self, parent, node_is_left_child):
-        pass  # TODO
+        if node_is_left_child:
+            sibling = parent.right
+        else:
+            sibling = parent.left
+        parent.color = 'black'
+        sibling.color = 'red'
+        self.frame.recolor_node(parent, 'black')
+        self.frame.recolor_node(sibling, 'red')
 
     def _case_5_rem(self, parent, node_is_left_child):
-        pass  # TODO
+        s, sl, sr = self._get_relatives_rem(parent, node_is_left_child)
+        if node_is_left_child:
+            self.frame.rotate_right_redraw_connect(s)
+            self._rotate_right(s)
+            self.frame.rotate(self.root)
+            sl.color = 'black'
+            s.color = 'red'
+            self.frame.recolor_node(sl, 'black')
+            self.frame.recolor_node(s, 'red')
+        else:
+            self.frame.rotate_left_redraw_connect(s)
+            self._rotate_left(s)
+            self.frame.rotate(self.root)
+            sr.color = 'black'
+            s.color = 'red'
+            self.frame.recolor_node(sr, 'black')
+            self.frame.recolor_node(s, 'red')
+        self._case_6_rem(parent, node_is_left_child)
 
     def _case_6_rem(self, parent, node_is_left_child):
-        pass  # TODO
+        s, sl, sr = self._get_relatives_rem(parent, node_is_left_child)
+        if node_is_left_child:
+            self.frame.rotate_left_redraw_connect(parent)
+            self._rotate_left(parent)
+            self.frame.rotate(self.root)
+            sr.color = 'black'
+            s.color, parent.color = parent.color, s.color
+            self.frame.recolor_node(sr, 'black')
+            self.frame.recolor_node(s, s.color)
+            self.frame.recolor_node(parent, parent.color)
+        else:
+            self.frame.rotate_right_redraw_connect(parent)
+            self._rotate_right(parent)
+            self.frame.rotate(self.root)
+            sl.color = 'black'
+            s.color, parent.color = parent.color, s.color
+            self.frame.recolor_node(sl, 'black')
+            self.frame.recolor_node(s, s.color)
+            self.frame.recolor_node(parent, parent.color)
 
     def _cases_4_5_6_rem(self, parent, node_is_left_child):
-        pass  # TODO
+        if self._4th_cond_rem(parent, node_is_left_child):
+            print('case 4')
+            self._case_4_rem(parent, node_is_left_child)
+        elif self._5th_cond_rem(parent, node_is_left_child):
+            print('case 5')
+            print(parent.value)
+            self._case_5_rem(parent, node_is_left_child)
+        else:
+            print('case 6')
+            self._case_6_rem(parent, node_is_left_child)
 
     def _retrace_remove(self, parent, node_is_left_child):
         if parent is None:
             pass  # case 1
 
         elif self._2nd_cond_rem(parent, node_is_left_child):
+            print('case 2')
             self._case_2_rem(parent, node_is_left_child)
 
         elif self._3rd_cond_rem(parent, node_is_left_child):
+            print('case 3')
             self._case_3_rem(parent, node_is_left_child)
 
         else:
+            print('case 4, 5, 6')
             self._cases_4_5_6_rem(parent, node_is_left_child)
 
     def _replace(self, node, successor):
@@ -208,6 +311,7 @@ class RBT(BST):
                 "broken RBT: the only non NIL child is black"
             self._set_links_with_parent_for_node_replacement(node, successor)
             successor.color = 'black'
+            self.frame.recolor_node(successor, 'black')
 
     def _remove(self, key, root):
         node = self._find(key, root)
@@ -220,6 +324,7 @@ class RBT(BST):
                 successor = self._find_min_in_subtree(key, node.right).copy()
                 node.key = successor.key
                 node.value = successor.value
+                self.frame._remove(node, successor)
                 self._remove(successor.key, node.right)
         else:
             raise KeyError("node with key {} is not found in RBT".format(repr(key)))
@@ -278,47 +383,26 @@ class RBT(BST):
         _ = self._verify(self.root)
 
 
-    def _rotate_left1(self, node):
-        """Left rotation of subtree with root at `node`.
-            node                 B
-           /    \               / \
-          A      B   ===>   node   D
-                / \        /    \
-               C   D      A      C
-        Args:
-            node: an instance of `BSTNode` class or `BSTNode` subclass
-
-        Returns:
-            None
-        """
-
-        r = node.right
-        if r is None:
-            raise ValueError("no right subtree")
-        rl = r.left
-
-        p = node.parent
-
-        if p is None:
-            self.root = r
+    def _set_links_with_parent_for_node_replacement(self, node, successor):
+        parent = node.parent
+        if parent is None:
+            self.root = successor
         else:
             if node.is_left_child():
-                p.left = r
+                parent.left = successor
             else:
-                p.right = r
+                parent.right = successor
+            self.frame._canvas.delete(node.connect)
+        if successor is not None:
+            successor.parent = parent
+            self.frame._canvas.delete(successor.connect)
 
-        r.parent = p
-        r.left = node
-        # redraw connections
-        self.frame.draw_connection(r, p)
-        self.frame.draw_connection(node, r)
+        self.frame._canvas.delete(node.fig)
+        self.frame._canvas.delete(node.text)
+        self.frame._root.update()
+        time.sleep(0.5 / self.frame.speed)
 
-        node.parent = r
-        node.right = rl
-
-        if rl is not None:
-            rl.parent = node
-            self.frame.draw_connection(rl, node)
-
-
-        # Передвинуть все узлы на свои места!
+        if successor is not None and parent is not None:
+            self.frame.draw_connection(successor, parent)
+        nodes_to_move = self.frame._update_coords(self.root)
+        self.frame._move_all_nodes(nodes_to_move)
